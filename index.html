@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTTP Security Headers Checker — Check HSTS, CSP, X-Frame-Options</title>
+  <meta name="description" content="Free tool to check your website's HTTP security headers. See which headers are missing and get a letter grade. HSTS, CSP, X-Frame-Options, X-Content-Type-Options.">
+  <meta name="keywords" content="security headers checker, HSTS checker, CSP checker, X-Frame-Options, http security headers, web security">
+  <link rel="canonical" href="https://lior-seats.github.io/security-headers-checker/">
+  <meta property="og:title" content="HTTP Security Headers Checker — Check HSTS, CSP, X-Frame-Options">
+  <meta property="og:description" content="Free tool to check your website's HTTP security headers. See which headers are missing and get a letter grade.">
+  <meta property="og:url" content="https://lior-seats.github.io/security-headers-checker/">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="HTTP Security Headers Checker">
+  <meta name="twitter:description" content="Free tool to check HTTP security headers — HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy.">
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#0f172a;color:#e2e8f0;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:2rem 1rem}
+    .container{max-width:720px;width:100%}
+    h1{font-size:2rem;font-weight:700;color:#f8fafc;margin-bottom:.5rem;text-align:center}
+    .subtitle{color:#94a3b8;text-align:center;margin-bottom:2.5rem;font-size:1.05rem}
+    .checker-box{background:#1e293b;border:1px solid #334155;border-radius:12px;padding:2rem;margin-bottom:1.5rem}
+    .input-row{display:flex;gap:.75rem}
+    input[type="text"]{flex:1;padding:.75rem 1rem;background:#0f172a;border:1px solid #475569;border-radius:8px;color:#f1f5f9;font-size:1rem;outline:none}
+    input[type="text"]:focus{border-color:#6366f1}
+    input[type="text"]::placeholder{color:#64748b}
+    button{padding:.75rem 1.5rem;background:#6366f1;color:white;border:none;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;white-space:nowrap;transition:background .2s}
+    button:hover{background:#4f46e5}
+    button:disabled{background:#475569;cursor:not-allowed}
+    #result{margin-top:1.5rem;display:none}
+    .overall-badge{display:flex;align-items:center;gap:1.25rem;background:#0f172a;border:1px solid #334155;border-radius:10px;padding:1.25rem 1.5rem;margin-bottom:1.25rem}
+    .grade-circle{width:72px;height:72px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:2rem;font-weight:800;flex-shrink:0;border:3px solid}
+    .grade-circle.A{background:rgba(16,185,129,.15);border-color:#10b981;color:#10b981}
+    .grade-circle.B{background:rgba(245,158,11,.15);border-color:#f59e0b;color:#f59e0b}
+    .grade-circle.C{background:rgba(249,115,22,.15);border-color:#f97316;color:#f97316}
+    .grade-circle.F{background:rgba(239,68,68,.15);border-color:#ef4444;color:#ef4444}
+    .overall-info h3{font-size:1.1rem;color:#f1f5f9;margin-bottom:.25rem}
+    .overall-info p{color:#94a3b8;font-size:.9rem}
+    .headers-grid{display:flex;flex-direction:column;gap:.75rem}
+    .header-card{background:#0f172a;border:1px solid #334155;border-radius:8px;padding:1rem 1.25rem;display:flex;align-items:flex-start;gap:1rem}
+    .header-card .grade-badge{min-width:36px;height:36px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.9rem;font-weight:800;flex-shrink:0}
+    .grade-badge.A{background:rgba(16,185,129,.2);color:#10b981}
+    .grade-badge.B{background:rgba(245,158,11,.2);color:#f59e0b}
+    .grade-badge.C{background:rgba(249,115,22,.2);color:#f97316}
+    .grade-badge.F{background:rgba(239,68,68,.2);color:#ef4444}
+    .header-info{flex:1;min-width:0}
+    .header-name{font-weight:600;color:#f1f5f9;font-size:.95rem;margin-bottom:.2rem}
+    .header-value{font-family:'Courier New',monospace;font-size:.78rem;color:#a5f3fc;margin-bottom:.2rem;word-break:break-all;background:#0a1628;padding:.2rem .4rem;border-radius:4px;display:inline-block;max-width:100%}
+    .header-value.missing{color:#ef4444;background:transparent;padding:0;font-family:inherit;font-size:.85rem;font-style:italic}
+    .header-desc{font-size:.82rem;color:#94a3b8}
+    .share-row{display:flex;gap:.6rem;margin-top:1rem;flex-wrap:wrap}
+    .share-btn{display:inline-flex;align-items:center;gap:.4rem;padding:.45rem 1rem;border-radius:6px;border:none;cursor:pointer;font-size:.875rem;font-weight:600;transition:opacity .15s;text-decoration:none;white-space:nowrap}
+    .share-btn:hover{opacity:.8}
+    .share-btn-x{background:#000;color:#fff}
+    .share-btn-copy{background:#1e293b;color:#e2e8f0;border:1px solid #475569}
+    .share-btn-copy.ok{background:#0f4c2a;border-color:#10b981;color:#6ee7b7}
+    #monitor-row{margin-top:.85rem;display:none}
+    .monitor-btn{width:100%;padding:.75rem 1rem;background:#6366f1;color:#fff;border:none;border-radius:9px;font-size:.95rem;font-weight:700;cursor:pointer;transition:background .2s;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+    .monitor-btn:hover{background:#4f46e5}
+    .monitor-btn:disabled{background:#475569;cursor:not-allowed}
+    .monitor-msg{font-size:.8rem;color:#94a3b8;margin-top:.4rem;min-height:1rem}
+    .error-card{background:rgba(239,68,68,.1);border:1px solid #ef4444;border-radius:8px;padding:1rem 1.25rem;color:#fca5a5}
+    .features{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin:2rem 0}
+    .feature{background:#1e293b;border:1px solid #334155;border-radius:8px;padding:1rem;text-align:center;font-size:.9rem;color:#94a3b8}
+    .feature .icon{font-size:1.5rem;display:block;margin-bottom:.5rem}
+    .cta-box{background:linear-gradient(135deg,#1e1b4b 0%,#1e293b 100%);border:1px solid #6366f1;border-radius:12px;padding:2rem;text-align:center;margin-top:1.5rem}
+    .cta-box h2{font-size:1.3rem;color:#f8fafc;margin-bottom:.5rem}
+    .cta-box p{color:#94a3b8;margin-bottom:1.25rem;font-size:.95rem}
+    .cta-btn{display:inline-block;padding:.75rem 2rem;background:#6366f1;color:white;text-decoration:none;border-radius:8px;font-weight:600;transition:background .2s}
+    .cta-btn:hover{background:#4f46e5}
+    footer{margin-top:3rem;color:#475569;font-size:.85rem;text-align:center}
+    @media(max-width:480px){.input-row{flex-direction:column}h1{font-size:1.5rem}.overall-badge{flex-direction:column;text-align:center}}
+  </style>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "HTTP Security Headers Checker",
+    "url": "https://lior-seats.github.io/security-headers-checker/",
+    "description": "Free tool to check HTTP security headers — HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy.",
+    "applicationCategory": "DeveloperApplication",
+    "operatingSystem": "Web",
+    "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
+    "author": {"@type": "Person", "name": "lior-seats"}
+  }
+  </script>
+</head>
+<body>
+  <div class="container">
+    <h1>🔒 Security Headers Checker</h1>
+    <p class="subtitle">Check your website's HTTP security headers — get a letter grade instantly, for free.</p>
+    <div class="checker-box">
+      <div class="input-row">
+        <input type="text" id="domainInput" placeholder="github.com" autocomplete="off" spellcheck="false">
+        <button id="checkBtn" onclick="checkHeaders()">Check Headers</button>
+      </div>
+      <div id="result"></div>
+      <div id="monitor-row">
+        <button class="monitor-btn" id="monitor-btn" onclick="monitorDomain()">
+          <span>🔔 Monitor <span id="monitor-domain-label">this domain</span> — alert when headers change</span>
+          <span style="font-size:.82rem;font-weight:400;opacity:.85">$9/mo →</span>
+        </button>
+        <div class="monitor-msg" id="monitor-msg"></div>
+      </div>
+      <div id="share-row" class="share-row" style="display:none">
+        <a id="share-x-btn" class="share-btn share-btn-x" href="#" target="_blank" rel="noopener noreferrer">
+          <svg width="13" height="13" viewBox="0 0 1200 1227" fill="currentColor"><path d="M714.163 519.284L1160.89 0h-105.86L667.137 450.887 357.328 0H0l468.492 681.821L0 1226.37h105.866l409.625-476.152 327.181 476.152H1200L714.163 519.284zm-144.418 167.892l-47.468-67.894L144.011 79.672h162.604l304.797 435.991 47.468 67.894 396.2 566.721H892.476L569.745 687.176z"/></svg>
+          Share on 𝕏
+        </a>
+        <button id="share-copy-btn" class="share-btn share-btn-copy" onclick="copyResult()">📋 Copy summary</button>
+      </div>
+    </div>
+    <div class="features">
+      <div class="feature"><span class="icon">🛡️</span>6 headers checked</div>
+      <div class="feature"><span class="icon">📊</span>A–F letter grades</div>
+      <div class="feature"><span class="icon">📋</span>Actionable descriptions</div>
+      <div class="feature"><span class="icon">⚡</span>Instant, no signup</div>
+    </div>
+    <div class="cta-box">
+      <h2>Get alerted when your headers change</h2>
+      <p>A deployment can silently remove your HSTS policy or CSP. HeaderGuard monitors your headers 24/7 and emails you the moment anything changes.</p>
+      <a href="https://lior-seats.github.io/headerguard-waitlist/" class="cta-btn">Join HeaderGuard Waitlist →</a>
+    </div>
+  </div>
+  <footer>Free security headers checker · <a href="https://lior-seats.github.io/headerguard-waitlist/" style="color:#6366f1">HeaderGuard monitoring</a></footer>
+
+  <script>
+    fetch('https://agent-control-plane-w3m9.onrender.com/api/hit?page=security-headers-checker',{mode:'no-cors'}).catch(()=>{});
+
+    const p = new URLSearchParams(window.location.search);
+    if(p.get('domain')) document.getElementById('domainInput').value = p.get('domain');
+    document.getElementById('domainInput').addEventListener('keydown', e => { if(e.key==='Enter') checkHeaders(); });
+
+    let lastResult = null;
+    let lastDomain = '';
+
+    async function checkHeaders() {
+      let domain = document.getElementById('domainInput').value.trim().replace(/^https?:\/\//i,'').replace(/\/.*/,'').trim();
+      if(!domain) return;
+      const btn = document.getElementById('checkBtn');
+      const result = document.getElementById('result');
+      btn.disabled = true; btn.textContent = 'Checking…';
+      result.style.display = 'none';
+      document.getElementById('monitor-row').style.display = 'none';
+      document.getElementById('share-row').style.display = 'none';
+      try {
+        const res = await fetch('https://agent-control-plane-w3m9.onrender.com/api/security-headers?domain=' + encodeURIComponent(domain));
+        const data = await res.json();
+        if(res.ok) {
+          lastResult = data; lastDomain = domain;
+          showResult(data);
+        } else {
+          showError(data.error || 'Could not reach domain');
+        }
+      } catch(e) {
+        showError('Request failed — the server may be starting up. Try again in a moment.');
+      } finally {
+        btn.disabled = false; btn.textContent = 'Check Headers';
+        result.style.display = 'block';
+      }
+    }
+
+    function gradeClass(g) { return g; }
+
+    function showResult(data) {
+      const headerCards = data.headers.map(h => `
+        <div class="header-card">
+          <div class="grade-badge ${gradeClass(h.grade)}">${h.grade}</div>
+          <div class="header-info">
+            <div class="header-name">${esc(h.name)}</div>
+            ${h.present
+              ? `<div class="header-value">${esc(h.value)}</div>`
+              : `<div class="header-value missing">Not set</div>`}
+            <div class="header-desc">${esc(h.description)}</div>
+          </div>
+        </div>`).join('');
+
+      document.getElementById('result').innerHTML = `
+        <div class="overall-badge">
+          <div class="grade-circle ${gradeClass(data.overallGrade)}">${data.overallGrade}</div>
+          <div class="overall-info">
+            <h3>Overall Grade: ${data.overallGrade}</h3>
+            <p>${esc(data.summary)} · ${esc(data.domain)}</p>
+          </div>
+        </div>
+        <div class="headers-grid">${headerCards}</div>`;
+
+      // Share buttons
+      const n = data.headers.filter(h => h.present).length;
+      const shareText = encodeURIComponent(`${data.domain} security headers: ${data.overallGrade} — ${n} of 6 headers present. Check yours: https://lior-seats.github.io/security-headers-checker/ #websecurity #devtools`);
+      document.getElementById('share-x-btn').href = 'https://twitter.com/intent/tweet?text=' + shareText;
+      const copyBtn = document.getElementById('share-copy-btn');
+      copyBtn.classList.remove('ok'); copyBtn.textContent = '📋 Copy summary';
+      document.getElementById('share-row').style.display = 'flex';
+
+      // Monitor button
+      document.getElementById('monitor-domain-label').textContent = esc(data.domain);
+      document.getElementById('monitor-btn').dataset.domain = data.domain;
+      document.getElementById('monitor-msg').textContent = '';
+      document.getElementById('monitor-row').style.display = 'block';
+    }
+
+    function showError(msg) {
+      document.getElementById('result').innerHTML = `<div class="error-card">⚠️ ${esc(msg)}</div>`;
+    }
+
+    function copyResult() {
+      if(!lastResult) return;
+      const lines = [`${lastResult.domain} Security Headers — Grade ${lastResult.overallGrade}`, lastResult.summary, ''];
+      lastResult.headers.forEach(h => {
+        lines.push(`${h.grade}  ${h.name}`);
+        lines.push(`   ${h.present ? h.value : 'Not set'}`);
+        lines.push(`   ${h.description}`);
+      });
+      lines.push('', 'Checked with: https://lior-seats.github.io/security-headers-checker/');
+      const text = lines.join('\n');
+      const btn = document.getElementById('share-copy-btn');
+      navigator.clipboard.writeText(text).then(() => {
+        btn.classList.add('ok'); btn.textContent = '✓ Copied!';
+        setTimeout(() => { btn.classList.remove('ok'); btn.textContent = '📋 Copy summary'; }, 1800);
+      }).catch(() => {
+        const ta = document.createElement('textarea'); ta.value = text; ta.style.cssText = 'position:fixed;opacity:0';
+        document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta);
+        btn.classList.add('ok'); btn.textContent = '✓ Copied!';
+        setTimeout(() => { btn.classList.remove('ok'); btn.textContent = '📋 Copy summary'; }, 1800);
+      });
+    }
+
+    async function monitorDomain() {
+      const domain = document.getElementById('monitor-btn').dataset.domain;
+      const btn = document.getElementById('monitor-btn');
+      const msg = document.getElementById('monitor-msg');
+      btn.disabled = true;
+      btn.querySelector('span:first-child').textContent = 'Connecting to checkout…';
+      try {
+        const res = await fetch('https://agent-control-plane-w3m9.onrender.com/api/checkout/create-session', {
+          method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({product:'headerguard'})
+        });
+        const data = await res.json();
+        if(res.status === 503 || !data.ok) {
+          msg.style.color = '#94a3b8';
+          msg.innerHTML = 'Payments launching soon — <a href="https://lior-seats.github.io/headerguard-waitlist/" style="color:#6366f1">join the waitlist instead</a>.';
+          btn.querySelector('span:first-child').textContent = '🔔 Monitor ' + esc(domain) + ' — alert when headers change';
+          btn.disabled = false;
+        } else if(data.url) {
+          window.location.href = data.url;
+        } else { throw new Error('No URL'); }
+      } catch {
+        msg.style.color = '#94a3b8';
+        msg.innerHTML = 'Payments launching soon — <a href="https://lior-seats.github.io/headerguard-waitlist/" style="color:#6366f1">join the waitlist</a>.';
+        btn.querySelector('span:first-child').textContent = '🔔 Monitor ' + esc(domain) + ' — alert when headers change';
+        btn.disabled = false;
+      }
+    }
+
+    function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  </script>
+</body>
+</html>
